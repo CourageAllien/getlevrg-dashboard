@@ -55,6 +55,12 @@
   }
   .seg button.on{background:var(--panel-2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
   .seg button:hover:not(.on){color:var(--txt)}
+  .weeksel{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--txt);
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    padding:9px 12px;border-radius:8px;cursor:pointer;outline:none;
+  }
+  .weeksel[hidden]{display:none}
 
   /* kpi */
   .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:16px}
@@ -148,8 +154,8 @@
     </div>
     <div class="seg" id="seg">
       <button data-f="all" class="on">All</button>
-      <button data-f="1">Week 1</button>
-      <button data-f="2">Week 2</button>
+      <button data-f="week">Week</button>
+      <select id="weekSel" class="weeksel" hidden aria-label="Select week"></select>
     </div>
   </header>
 
@@ -171,7 +177,6 @@
       <thead>
         <tr>
           <th data-k="name" data-t="s">Campaign</th>
-          <th data-k="sentAt" data-t="s" class="sort">Sent<span class="ar">▼</span></th>
           <th data-k="sent">Sent</th>
           <th data-k="replied">Replied</th>
           <th data-k="rr">Reply %</th>
@@ -195,36 +200,38 @@
 </div>
 
 <script>
-// ---- DATA (from Instantly screenshots, 01 Jun 2026) ----
+// ---- DATA ----
 // Edit any number here and the whole dashboard updates.
-// sentAt drives the recency ranking (default table sort). rr can be set
-// explicitly to override the computed reply rate (e.g. Instantly's rate uses a
-// different denominator than whole-number replies).
-// week 1 = the original campaigns; week 2 = the latest send (GL Offshore Play).
-// opps = positive replies. Meetings booked is tracked separately (0 so far).
+// week groups each send batch (latest week ranks first). opps = positive replies.
+// Meetings booked is tracked separately (0 so far). rr can be set explicitly to
+// override the computed reply rate (Instantly reports a rate even with 0 whole
+// replies); repliedEff carries that override into the aggregates.
 const DATA = [
-  {name:"GL Offshore Play",    week:2, status:"Completed", sent:110,  replied:0,  opps:0,  rr:0.4, sentAt:"2026-06-09"},
-  {name:"Campaign 1 (Play 6)", week:1, status:"Completed", sent:970,  replied:12, opps:8,  sentAt:"2026-06-01"},
-  {name:"Campaign 2 (Play 2)", week:1, status:"Completed", sent:1967, replied:14, opps:9,  sentAt:"2026-06-01"},
-  {name:"Campaign 3 (Play 1)", week:1, status:"Completed", sent:1962, replied:3,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 1 (Test)",       week:1, status:"Completed", sent:1000, replied:4,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 3 (Test)",       week:1, status:"Completed", sent:1000, replied:3,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 4 (Test)",       week:1, status:"Completed", sent:1000, replied:6,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 9 (Test)",       week:1, status:"Completed", sent:1000, replied:5,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 6 (Test)",       week:1, status:"Active",    sent:1969, replied:4,  opps:1,  sentAt:"2026-06-01"},
+  {name:"GL Offshore Play",    week:2, status:"Completed", sent:110,  replied:0,  opps:0,  rr:0.4},
+  {name:"Campaign 1 (Play 6)", week:1, status:"Completed", sent:970,  replied:12, opps:8},
+  {name:"Campaign 2 (Play 2)", week:1, status:"Completed", sent:1967, replied:14, opps:9},
+  {name:"Campaign 3 (Play 1)", week:1, status:"Completed", sent:1962, replied:3,  opps:0},
+  {name:"Play 1 (Test)",       week:1, status:"Completed", sent:1000, replied:4,  opps:0},
+  {name:"Play 3 (Test)",       week:1, status:"Completed", sent:1000, replied:3,  opps:0},
+  {name:"Play 4 (Test)",       week:1, status:"Completed", sent:1000, replied:6,  opps:0},
+  {name:"Play 9 (Test)",       week:1, status:"Completed", sent:1000, replied:5,  opps:0},
+  {name:"Play 6 (Test)",       week:1, status:"Active",    sent:1969, replied:4,  opps:1},
 ];
 const pct=(n,d)=>d?+( (n/d*100).toFixed(1) ):0;
-const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const fmtDate=s=>{const[,m,d]=s.split("-");return MON[+m-1]+" "+(+d);};
-DATA.forEach(d=>{if(d.rr==null)d.rr=pct(d.replied,d.sent);d.opprate=pct(d.opps,d.sent);d.conv=pct(d.opps,d.replied);});
+DATA.forEach(d=>{
+  const override=d.rr!=null;
+  if(!override)d.rr=pct(d.replied,d.sent);
+  d.repliedEff=override?d.rr*d.sent/100:d.replied;
+  d.opprate=pct(d.opps,d.sent);d.conv=pct(d.opps,d.replied);
+});
 
-let filter="all", sortKey="sentAt", sortDir=-1;
+let filter="all", sortKey="week", sortDir=-1;
 const fmt=n=>n.toLocaleString();
 const view=()=>DATA.filter(d=>filter==="all"||String(d.week)===filter);
 
 function agg(rows){
-  const s=rows.reduce((a,r)=>({sent:a.sent+r.sent,replied:a.replied+r.replied,opps:a.opps+r.opps}),{sent:0,replied:0,opps:0});
-  s.rr=pct(s.replied,s.sent);s.opprate=pct(s.opps,s.sent);s.conv=pct(s.opps,s.replied);return s;
+  const s=rows.reduce((a,r)=>({sent:a.sent+r.sent,replied:a.replied+r.replied,opps:a.opps+r.opps,repliedEff:a.repliedEff+r.repliedEff}),{sent:0,replied:0,opps:0,repliedEff:0});
+  s.rr=pct(s.repliedEff,s.sent);s.opprate=pct(s.opps,s.sent);s.conv=pct(s.opps,s.replied);return s;
 }
 
 function renderKpis(){
@@ -287,7 +294,6 @@ function renderTable(){
       + (r.status==="Active" ? `<span class="tag active">Active</span>` : "");
     return `<tr>
       <td class="name"><span class="dot" style="background:${dotColor(r.week)}"></span>${r.name}${tag}</td>
-      <td>${fmtDate(r.sentAt)}</td>
       <td>${fmt(r.sent)}</td>
       <td>${r.replied}</td>
       <td>${r.rr}%</td>
@@ -297,7 +303,7 @@ function renderTable(){
     </tr>`;}).join("");
   const a=agg(rows);
   document.getElementById("tfoot").innerHTML=`<tr>
-    <td>Total · ${rows.length}</td><td>—</td><td>${fmt(a.sent)}</td><td>${a.replied}</td>
+    <td>Total · ${rows.length}</td><td>${fmt(a.sent)}</td><td>${a.replied}</td>
     <td>${a.rr}%</td><td class="hi">${a.opps}</td><td>${a.opprate}%</td><td class="hi">${a.conv}%</td></tr>`;
   document.querySelectorAll("thead th").forEach(th=>{
     th.classList.toggle("sort",th.dataset.k===sortKey);
@@ -314,17 +320,23 @@ function renderRead(){
     `Meanwhile <b>${worst.name}</b> drove ${worst.replied} replies into 0 positive replies — high send, no qualified interest, worth retiring or re-angling. `+
     `Week 2 (GL Offshore Play) just went out — too early to read. No meetings are booked yet; converting positive replies into booked meetings is the next lever.`;
   document.getElementById("foot").innerHTML=
-    `Source: Instantly campaigns export · GetLevrg · 01 Jun 2026 &nbsp;|&nbsp; Campaign 2 sent/play# and Campaign 1 reply-% were inferred from a partially clipped row — adjust in the DATA array if exact figures differ. &nbsp;|&nbsp; *Cost/Pos shown as sends-per-positive-reply proxy.`;
+    `Source: Instantly campaigns export · GetLevrg · weekly update &nbsp;|&nbsp; Campaign 2 sent/play# and Campaign 1 reply-% were inferred from a partially clipped row — adjust in the DATA array if exact figures differ. &nbsp;|&nbsp; *Cost/Pos shown as sends-per-positive-reply proxy.`;
 }
 
 function renderAll(){renderKpis();renderBars();renderQuality();renderTable();renderRead();}
 
+const weeks=[...new Set(DATA.map(d=>d.week))].sort((a,b)=>b-a);
+const weekSel=document.getElementById("weekSel");
+weekSel.innerHTML=weeks.map(w=>`<option value="${w}">Week ${w}</option>`).join("");
+
 document.getElementById("seg").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b)return;
-  filter=b.dataset.f;
   document.querySelectorAll("#seg button").forEach(x=>x.classList.toggle("on",x===b));
+  if(b.dataset.f==="all"){filter="all";weekSel.hidden=true;}
+  else{weekSel.hidden=false;weekSel.value=String(weeks[0]);filter=weekSel.value;}
   renderKpis();renderBars();renderTable();
 });
+weekSel.addEventListener("change",()=>{filter=weekSel.value;renderKpis();renderBars();renderTable();});
 document.querySelectorAll("thead th").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;
   if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=th.dataset.t==="s"?1:-1;}
