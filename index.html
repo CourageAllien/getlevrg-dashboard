@@ -78,12 +78,14 @@
 
   /* bars */
   .bars{display:flex;flex-direction:column;gap:13px}
-  .bar-row{display:grid;grid-template-columns:130px 1fr 46px;align-items:center;gap:12px}
+  .bar-row{display:grid;grid-template-columns:130px 1fr 46px 60px;align-items:center;gap:12px}
   .bar-name{font-size:12.5px;color:var(--txt-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bar-track{height:9px;background:var(--line-soft);border-radius:6px;overflow:hidden}
   .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green-dim),var(--green));width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
   .bar-fill.test{background:linear-gradient(90deg,#2d3a52,var(--blue))}
   .bar-val{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--txt)}
+  .bar-opps{font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right;color:var(--txt-faint);white-space:nowrap}
+  .bar-opps.has{color:var(--green)}
 
   /* funnel / quality */
   .quality{display:flex;flex-direction:column;gap:16px}
@@ -131,7 +133,7 @@
     .grid{grid-template-columns:1fr}
     h1{font-size:36px}
     body{padding:28px 18px 60px}
-    .bar-row{grid-template-columns:100px 1fr 42px}
+    .bar-row{grid-template-columns:90px 1fr 40px 52px}
   }
 </style>
 </head>
@@ -142,7 +144,7 @@
     <div>
       <div class="brandline"><span class="pulse"></span><span class="eyebrow">Instantly · Outbound</span></div>
       <h1>GetLevrg <span>/ campaign health</span></h1>
-      <p class="sub">Eight campaigns across the test → scale pipeline. Production plays are converting replies to opportunities; the test cohort is still in the angle-validation phase.</p>
+      <p class="sub">Nine campaigns across the test → scale pipeline. Production plays are converting replies to opportunities; the test cohort is still in the angle-validation phase.</p>
     </div>
     <div class="seg" id="seg">
       <button data-f="all" class="on">All</button>
@@ -169,12 +171,13 @@
       <thead>
         <tr>
           <th data-k="name" data-t="s">Campaign</th>
+          <th data-k="sentAt" data-t="s" class="sort">Sent<span class="ar">▼</span></th>
           <th data-k="sent">Sent</th>
           <th data-k="replied">Replied</th>
           <th data-k="rr">Reply %</th>
           <th data-k="opps">Opps</th>
           <th data-k="opprate">Opp %</th>
-          <th data-k="conv" class="sort">R→O %<span class="ar">▼</span></th>
+          <th data-k="conv">R→O %<span class="ar">▼</span></th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -194,20 +197,26 @@
 <script>
 // ---- DATA (from Instantly screenshots, 01 Jun 2026) ----
 // Edit any number here and the whole dashboard updates.
+// sentAt drives the recency ranking (default table sort). rr can be set
+// explicitly to override the computed reply rate (e.g. Instantly's rate uses a
+// different denominator than whole-number replies).
 const DATA = [
-  {name:"Campaign 1 (Play 6)", group:"prod", status:"Completed", sent:970,  replied:12, opps:8},
-  {name:"Campaign 2 (Play 2)", group:"prod", status:"Completed", sent:1967, replied:14, opps:9},
-  {name:"Campaign 3 (Play 1)", group:"prod", status:"Completed", sent:1962, replied:3,  opps:0},
-  {name:"Play 1 (Test)",       group:"test", status:"Completed", sent:1000, replied:4,  opps:0},
-  {name:"Play 3 (Test)",       group:"test", status:"Completed", sent:1000, replied:3,  opps:0},
-  {name:"Play 4 (Test)",       group:"test", status:"Completed", sent:1000, replied:6,  opps:0},
-  {name:"Play 9 (Test)",       group:"test", status:"Completed", sent:1000, replied:5,  opps:0},
-  {name:"Play 6 (Test)",       group:"test", status:"Active",    sent:1969, replied:4,  opps:1},
+  {name:"GL Offshore Play",    group:"prod", status:"Completed", sent:110,  replied:0,  opps:0,  rr:0.4, sentAt:"2026-06-09"},
+  {name:"Campaign 1 (Play 6)", group:"prod", status:"Completed", sent:970,  replied:12, opps:8,  sentAt:"2026-06-01"},
+  {name:"Campaign 2 (Play 2)", group:"prod", status:"Completed", sent:1967, replied:14, opps:9,  sentAt:"2026-06-01"},
+  {name:"Campaign 3 (Play 1)", group:"prod", status:"Completed", sent:1962, replied:3,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 1 (Test)",       group:"test", status:"Completed", sent:1000, replied:4,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 3 (Test)",       group:"test", status:"Completed", sent:1000, replied:3,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 4 (Test)",       group:"test", status:"Completed", sent:1000, replied:6,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 9 (Test)",       group:"test", status:"Completed", sent:1000, replied:5,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 6 (Test)",       group:"test", status:"Active",    sent:1969, replied:4,  opps:1,  sentAt:"2026-06-01"},
 ];
 const pct=(n,d)=>d?+( (n/d*100).toFixed(1) ):0;
-DATA.forEach(d=>{d.rr=pct(d.replied,d.sent);d.opprate=pct(d.opps,d.sent);d.conv=pct(d.opps,d.replied);});
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtDate=s=>{const[,m,d]=s.split("-");return MON[+m-1]+" "+(+d);};
+DATA.forEach(d=>{if(d.rr==null)d.rr=pct(d.replied,d.sent);d.opprate=pct(d.opps,d.sent);d.conv=pct(d.opps,d.replied);});
 
-let filter="all", sortKey="conv", sortDir=-1;
+let filter="all", sortKey="sentAt", sortDir=-1;
 const fmt=n=>n.toLocaleString();
 const view=()=>DATA.filter(d=>filter==="all"||d.group===filter);
 
@@ -237,6 +246,7 @@ function renderBars(){
       <div class="bar-name" title="${r.name}">${r.name}</div>
       <div class="bar-track"><div class="bar-fill ${r.group==='test'?'test':''}" style="width:0" data-w="${(r.rr/max*100).toFixed(1)}"></div></div>
       <div class="bar-val">${r.rr}%</div>
+      <div class="bar-opps ${r.opps?'has':''}">${r.opps} opp</div>
     </div>`).join("");
   requestAnimationFrame(()=>document.querySelectorAll(".bar-fill").forEach(b=>b.style.width=b.dataset.w+"%"));
 }
@@ -274,6 +284,7 @@ function renderTable(){
       : r.group==="prod" ? `<span class="tag prod">Prod</span>` : `<span class="tag test">Test</span>`;
     return `<tr>
       <td class="name"><span class="dot" style="background:${dotColor(r.group)}"></span>${r.name}${tag}</td>
+      <td>${fmtDate(r.sentAt)}</td>
       <td>${fmt(r.sent)}</td>
       <td>${r.replied}</td>
       <td>${r.rr}%</td>
@@ -283,7 +294,7 @@ function renderTable(){
     </tr>`;}).join("");
   const a=agg(rows);
   document.getElementById("tfoot").innerHTML=`<tr>
-    <td>Total · ${rows.length}</td><td>${fmt(a.sent)}</td><td>${a.replied}</td>
+    <td>Total · ${rows.length}</td><td>—</td><td>${fmt(a.sent)}</td><td>${a.replied}</td>
     <td>${a.rr}%</td><td class="hi">${a.opps}</td><td>${a.opprate}%</td><td class="hi">${a.conv}%</td></tr>`;
   document.querySelectorAll("thead th").forEach(th=>{
     th.classList.toggle("sort",th.dataset.k===sortKey);
@@ -295,7 +306,7 @@ function renderRead(){
   const best=[...DATA].filter(d=>d.opps>0).sort((a,b)=>b.opps-a.opps)[0];
   const worst=[...DATA].filter(d=>d.group==='prod').sort((a,b)=>a.conv-b.conv)[0];
   document.getElementById("readtext").innerHTML=
-    `Across all 8 campaigns, <b>${agg(DATA).opps} opportunities</b> came off <b>${fmt(agg(DATA).sent)} sends</b> — but they're not evenly spread. `+
+    `Across all ${DATA.length} campaigns, <b>${agg(DATA).opps} opportunities</b> came off <b>${fmt(agg(DATA).sent)} sends</b> — but they're not evenly spread. `+
     `<b>${best.name}</b> is the strongest performer (${best.opps} opps, ${best.conv}% reply→opp), and <b>Campaign 2</b> is right behind it. `+
     `Meanwhile <b>${worst.name}</b> drove ${worst.replied} replies into 0 opps — high send, no qualified interest, worth retiring or re-angling. `+
     `The test cohort is generating replies at a healthy clip but almost no opportunities yet; that's the lever — fix qualification/offer on the tests before scaling more volume.`;
