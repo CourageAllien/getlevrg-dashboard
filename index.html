@@ -57,7 +57,7 @@
   .seg button:hover:not(.on){color:var(--txt)}
 
   /* kpi */
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:16px}
   .kpi{
     background:linear-gradient(160deg,var(--panel),var(--ink));
     border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden;
@@ -82,7 +82,7 @@
   .bar-name{font-size:12.5px;color:var(--txt-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bar-track{height:9px;background:var(--line-soft);border-radius:6px;overflow:hidden}
   .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green-dim),var(--green));width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
-  .bar-fill.test{background:linear-gradient(90deg,#2d3a52,var(--blue))}
+  .bar-fill.w2{background:linear-gradient(90deg,#2d3a52,var(--blue))}
   .bar-val{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--txt)}
   .bar-opps{font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right;color:var(--txt-faint);white-space:nowrap}
   .bar-opps.has{color:var(--green)}
@@ -114,8 +114,8 @@
   td.name{text-align:left;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;font-weight:600;color:var(--txt)}
   td.name .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:9px;vertical-align:middle}
   .tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:5px;margin-left:8px}
-  .tag.prod{background:rgba(39,209,127,.12);color:var(--green)}
-  .tag.test{background:rgba(91,141,239,.12);color:var(--blue)}
+  .tag.w1{background:rgba(39,209,127,.12);color:var(--green)}
+  .tag.w2{background:rgba(91,141,239,.12);color:var(--blue)}
   .tag.active{background:rgba(245,179,64,.12);color:var(--amber)}
   .hi{color:var(--green)}.zero{color:var(--txt-faint)}
   tfoot td{padding:15px 18px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;border-top:1px solid var(--line);background:var(--panel-2)}
@@ -144,12 +144,12 @@
     <div>
       <div class="brandline"><span class="pulse"></span><span class="eyebrow">Instantly · Outbound</span></div>
       <h1>GetLevrg <span>/ campaign health</span></h1>
-      <p class="sub">Nine campaigns across the test → scale pipeline. Production plays are converting replies to opportunities; the test cohort is still in the angle-validation phase.</p>
+      <p class="sub">Nine campaigns grouped by send week. Week 1 is the original batch; Week 2 is the latest send (GL Offshore Play). Positive replies are the qualified-interest signal; meetings booked is the next stage.</p>
     </div>
     <div class="seg" id="seg">
       <button data-f="all" class="on">All</button>
-      <button data-f="prod">Production</button>
-      <button data-f="test">Tests</button>
+      <button data-f="1">Week 1</button>
+      <button data-f="2">Week 2</button>
     </div>
   </header>
 
@@ -161,7 +161,7 @@
       <div class="bars" id="bars"></div>
     </div>
     <div class="card">
-      <div class="ch"><h2>Reply quality</h2><small>opps ÷ replies</small></div>
+      <div class="ch"><h2>Reply quality</h2><small>pos. reply ÷ replies</small></div>
       <div class="quality" id="quality"></div>
     </div>
   </div>
@@ -175,9 +175,9 @@
           <th data-k="sent">Sent</th>
           <th data-k="replied">Replied</th>
           <th data-k="rr">Reply %</th>
-          <th data-k="opps">Opps</th>
-          <th data-k="opprate">Opp %</th>
-          <th data-k="conv">R→O %<span class="ar">▼</span></th>
+          <th data-k="opps">Pos. Reply</th>
+          <th data-k="opprate">Pos %</th>
+          <th data-k="conv">R→P %<span class="ar">▼</span></th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -200,16 +200,18 @@
 // sentAt drives the recency ranking (default table sort). rr can be set
 // explicitly to override the computed reply rate (e.g. Instantly's rate uses a
 // different denominator than whole-number replies).
+// week 1 = the original campaigns; week 2 = the latest send (GL Offshore Play).
+// opps = positive replies. Meetings booked is tracked separately (0 so far).
 const DATA = [
-  {name:"GL Offshore Play",    group:"prod", status:"Completed", sent:110,  replied:0,  opps:0,  rr:0.4, sentAt:"2026-06-09"},
-  {name:"Campaign 1 (Play 6)", group:"prod", status:"Completed", sent:970,  replied:12, opps:8,  sentAt:"2026-06-01"},
-  {name:"Campaign 2 (Play 2)", group:"prod", status:"Completed", sent:1967, replied:14, opps:9,  sentAt:"2026-06-01"},
-  {name:"Campaign 3 (Play 1)", group:"prod", status:"Completed", sent:1962, replied:3,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 1 (Test)",       group:"test", status:"Completed", sent:1000, replied:4,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 3 (Test)",       group:"test", status:"Completed", sent:1000, replied:3,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 4 (Test)",       group:"test", status:"Completed", sent:1000, replied:6,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 9 (Test)",       group:"test", status:"Completed", sent:1000, replied:5,  opps:0,  sentAt:"2026-06-01"},
-  {name:"Play 6 (Test)",       group:"test", status:"Active",    sent:1969, replied:4,  opps:1,  sentAt:"2026-06-01"},
+  {name:"GL Offshore Play",    week:2, status:"Completed", sent:110,  replied:0,  opps:0,  rr:0.4, sentAt:"2026-06-09"},
+  {name:"Campaign 1 (Play 6)", week:1, status:"Completed", sent:970,  replied:12, opps:8,  sentAt:"2026-06-01"},
+  {name:"Campaign 2 (Play 2)", week:1, status:"Completed", sent:1967, replied:14, opps:9,  sentAt:"2026-06-01"},
+  {name:"Campaign 3 (Play 1)", week:1, status:"Completed", sent:1962, replied:3,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 1 (Test)",       week:1, status:"Completed", sent:1000, replied:4,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 3 (Test)",       week:1, status:"Completed", sent:1000, replied:3,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 4 (Test)",       week:1, status:"Completed", sent:1000, replied:6,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 9 (Test)",       week:1, status:"Completed", sent:1000, replied:5,  opps:0,  sentAt:"2026-06-01"},
+  {name:"Play 6 (Test)",       week:1, status:"Active",    sent:1969, replied:4,  opps:1,  sentAt:"2026-06-01"},
 ];
 const pct=(n,d)=>d?+( (n/d*100).toFixed(1) ):0;
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -218,7 +220,7 @@ DATA.forEach(d=>{if(d.rr==null)d.rr=pct(d.replied,d.sent);d.opprate=pct(d.opps,d
 
 let filter="all", sortKey="sentAt", sortDir=-1;
 const fmt=n=>n.toLocaleString();
-const view=()=>DATA.filter(d=>filter==="all"||d.group===filter);
+const view=()=>DATA.filter(d=>filter==="all"||String(d.week)===filter);
 
 function agg(rows){
   const s=rows.reduce((a,r)=>({sent:a.sent+r.sent,replied:a.replied+r.replied,opps:a.opps+r.opps}),{sent:0,replied:0,opps:0});
@@ -230,9 +232,10 @@ function renderKpis(){
   const cards=[
     {lab:"Sent",val:fmt(a.sent),note:view().length+" campaigns",cls:""},
     {lab:"Replies",val:fmt(a.replied),note:a.rr+"% reply rate",cls:""},
-    {lab:"Opportunities",val:fmt(a.opps),note:a.opprate+"% of sent",cls:"g"},
-    {lab:"Reply→Opp",val:a.conv+"%",note:"reply quality",cls:"a"},
-    {lab:"Cost / Opp*",val:a.opps?"~$"+Math.round(a.sent/a.opps):"—",note:"sends per opp",cls:""},
+    {lab:"Positive Reply",val:fmt(a.opps),note:a.opprate+"% of sent",cls:"g"},
+    {lab:"Meeting Booked",val:"0",note:"none yet",cls:""},
+    {lab:"Reply→Pos",val:a.conv+"%",note:"reply quality",cls:"a"},
+    {lab:"Cost / Pos*",val:a.opps?"~$"+Math.round(a.sent/a.opps):"—",note:"sends per pos.",cls:""},
   ];
   document.getElementById("kpis").innerHTML=cards.map(c=>`
     <div class="kpi"><div class="lab">${c.lab}</div><div class="val ${c.cls}">${c.val}</div><div class="note">${c.note}</div></div>`).join("");
@@ -244,9 +247,9 @@ function renderBars(){
   document.getElementById("bars").innerHTML=rows.map(r=>`
     <div class="bar-row">
       <div class="bar-name" title="${r.name}">${r.name}</div>
-      <div class="bar-track"><div class="bar-fill ${r.group==='test'?'test':''}" style="width:0" data-w="${(r.rr/max*100).toFixed(1)}"></div></div>
+      <div class="bar-track"><div class="bar-fill ${r.week===2?'w2':''}" style="width:0" data-w="${(r.rr/max*100).toFixed(1)}"></div></div>
       <div class="bar-val">${r.rr}%</div>
-      <div class="bar-opps ${r.opps?'has':''}">${r.opps} opp</div>
+      <div class="bar-opps ${r.opps?'has':''}">${r.opps} pos</div>
     </div>`).join("");
   requestAnimationFrame(()=>document.querySelectorAll(".bar-fill").forEach(b=>b.style.width=b.dataset.w+"%"));
 }
@@ -261,14 +264,14 @@ function ring(pct,color){
   </svg><div class="pct" style="color:${color}">${pct}%</div></div>`;
 }
 function renderQuality(){
-  const p=agg(DATA.filter(d=>d.group==="prod")), t=agg(DATA.filter(d=>d.group==="test"));
+  const p=agg(DATA.filter(d=>d.week===1)), t=agg(DATA.filter(d=>d.week===2));
   document.getElementById("quality").innerHTML=`
     <div class="q-row">${ring(p.conv,"var(--green)")}
-      <div class="q-meta"><div class="qt">Production plays</div>
-      <div class="qd"><b>${p.opps} opps</b> from <b>${p.replied} replies</b> · ${fmt(p.sent)} sent. The scaled winners are doing the real work.</div></div></div>
+      <div class="q-meta"><div class="qt">Week 1</div>
+      <div class="qd"><b>${p.opps} positive replies</b> from <b>${p.replied} replies</b> · ${fmt(p.sent)} sent. The original batch is where the qualified interest is landing.</div></div></div>
     <div class="q-row">${ring(t.conv,"var(--blue)")}
-      <div class="q-meta"><div class="qt">Test cohort</div>
-      <div class="qd"><b>${t.opps} opp</b> from <b>${t.replied} replies</b> · ${fmt(t.sent)} sent. Replies are landing but not yet qualifying — angle/ICP still being validated.</div></div></div>`;
+      <div class="q-meta"><div class="qt">Week 2</div>
+      <div class="qd"><b>${t.opps} positive replies</b> from <b>${t.replied} replies</b> · ${fmt(t.sent)} sent. Latest send (GL Offshore Play) — just went out, results still pending.</div></div></div>`;
   requestAnimationFrame(()=>document.querySelectorAll(".q-ring circle[data-off]").forEach(c=>c.style.strokeDashoffset=c.dataset.off));
 }
 
@@ -278,12 +281,12 @@ function renderTable(){
     if(typeof x==="string")return sortDir*x.localeCompare(y);
     return sortDir*(x-y);
   });
-  const dotColor=g=>g==="prod"?"var(--green)":"var(--blue)";
+  const dotColor=w=>w===1?"var(--green)":"var(--blue)";
   document.getElementById("tbody").innerHTML=rows.map(r=>{
-    const tag = r.status==="Active" ? `<span class="tag active">Active</span>`
-      : r.group==="prod" ? `<span class="tag prod">Prod</span>` : `<span class="tag test">Test</span>`;
+    const tag = `<span class="tag w${r.week}">Week ${r.week}</span>`
+      + (r.status==="Active" ? `<span class="tag active">Active</span>` : "");
     return `<tr>
-      <td class="name"><span class="dot" style="background:${dotColor(r.group)}"></span>${r.name}${tag}</td>
+      <td class="name"><span class="dot" style="background:${dotColor(r.week)}"></span>${r.name}${tag}</td>
       <td>${fmtDate(r.sentAt)}</td>
       <td>${fmt(r.sent)}</td>
       <td>${r.replied}</td>
@@ -304,14 +307,14 @@ function renderTable(){
 
 function renderRead(){
   const best=[...DATA].filter(d=>d.opps>0).sort((a,b)=>b.opps-a.opps)[0];
-  const worst=[...DATA].filter(d=>d.group==='prod').sort((a,b)=>a.conv-b.conv)[0];
+  const worst=[...DATA].filter(d=>d.week===1).sort((a,b)=>a.conv-b.conv)[0];
   document.getElementById("readtext").innerHTML=
-    `Across all ${DATA.length} campaigns, <b>${agg(DATA).opps} opportunities</b> came off <b>${fmt(agg(DATA).sent)} sends</b> — but they're not evenly spread. `+
-    `<b>${best.name}</b> is the strongest performer (${best.opps} opps, ${best.conv}% reply→opp), and <b>Campaign 2</b> is right behind it. `+
-    `Meanwhile <b>${worst.name}</b> drove ${worst.replied} replies into 0 opps — high send, no qualified interest, worth retiring or re-angling. `+
-    `The test cohort is generating replies at a healthy clip but almost no opportunities yet; that's the lever — fix qualification/offer on the tests before scaling more volume.`;
+    `Across all ${DATA.length} campaigns, <b>${agg(DATA).opps} positive replies</b> came off <b>${fmt(agg(DATA).sent)} sends</b> — but they're not evenly spread. `+
+    `<b>${best.name}</b> is the strongest performer (${best.opps} positive replies, ${best.conv}% reply→pos), and <b>Campaign 2</b> is right behind it. `+
+    `Meanwhile <b>${worst.name}</b> drove ${worst.replied} replies into 0 positive replies — high send, no qualified interest, worth retiring or re-angling. `+
+    `Week 2 (GL Offshore Play) just went out — too early to read. No meetings are booked yet; converting positive replies into booked meetings is the next lever.`;
   document.getElementById("foot").innerHTML=
-    `Source: Instantly campaigns export · GetLevrg · 01 Jun 2026 &nbsp;|&nbsp; Campaign 2 sent/play# and Campaign 1 reply-% were inferred from a partially clipped row — adjust in the DATA array if exact figures differ. &nbsp;|&nbsp; *Cost/opp shown as sends-per-opp proxy.`;
+    `Source: Instantly campaigns export · GetLevrg · 01 Jun 2026 &nbsp;|&nbsp; Campaign 2 sent/play# and Campaign 1 reply-% were inferred from a partially clipped row — adjust in the DATA array if exact figures differ. &nbsp;|&nbsp; *Cost/Pos shown as sends-per-positive-reply proxy.`;
 }
 
 function renderAll(){renderKpis();renderBars();renderQuality();renderTable();renderRead();}
