@@ -150,7 +150,7 @@
     <div>
       <div class="brandline"><span class="pulse"></span><span class="eyebrow">Instantly · Outbound</span></div>
       <h1>GetLevrg <span>/ campaign health</span></h1>
-      <p class="sub">Nine campaigns grouped by send week. Week 1 is the original batch; Week 2 is the latest send (GL Offshore Play). Positive replies are the qualified-interest signal; meetings booked is the next stage.</p>
+      <p class="sub">Thirteen campaigns grouped by send week. Week 3 is the newest batch (GL Campaigns 1–4). Positive replies are the qualified-interest signal; meetings booked is the next stage.</p>
     </div>
     <div class="seg" id="seg">
       <button data-f="all" class="on">All</button>
@@ -202,11 +202,16 @@
 <script>
 // ---- DATA ----
 // Edit any number here and the whole dashboard updates.
-// week groups each send batch (latest week ranks first). opps = positive replies.
-// Meetings booked is tracked separately (0 so far). rr can be set explicitly to
-// override the computed reply rate (Instantly reports a rate even with 0 whole
-// replies); repliedEff carries that override into the aggregates.
+// week groups each send batch (latest week ranks first): week 1 = original batch,
+// week 2 = GL Offshore Play, week 3 = GL Campaigns 1-4 (Instantly, latest send).
+// opps = positive replies (Instantly "Opportunities"); meetings = Instantly
+// "Conversions". replied is 0 where Instantly reply tracking is off. rr can be set
+// explicitly to override the computed reply rate; repliedEff carries it into aggregates.
 const DATA = [
+  {name:"GL Campaign 1",       week:3, status:"Completed", sent:2996, replied:0,  opps:1,  meetings:0},
+  {name:"GL Campaign 2",       week:3, status:"Completed", sent:2824, replied:0,  opps:1,  meetings:0},
+  {name:"GL Campaign 3",       week:3, status:"Completed", sent:2996, replied:0,  opps:0,  meetings:0},
+  {name:"GL Campaign 4",       week:3, status:"Completed", sent:920,  replied:0,  opps:0,  meetings:0},
   {name:"GL Offshore Play",    week:2, status:"Completed", sent:110,  replied:0,  opps:0,  rr:0.4},
   {name:"Campaign 1 (Play 6)", week:1, status:"Completed", sent:970,  replied:12, opps:8},
   {name:"Campaign 2 (Play 2)", week:1, status:"Completed", sent:1967, replied:14, opps:9},
@@ -230,7 +235,7 @@ const fmt=n=>n.toLocaleString();
 const view=()=>DATA.filter(d=>filter==="all"||String(d.week)===filter);
 
 function agg(rows){
-  const s=rows.reduce((a,r)=>({sent:a.sent+r.sent,replied:a.replied+r.replied,opps:a.opps+r.opps,repliedEff:a.repliedEff+r.repliedEff}),{sent:0,replied:0,opps:0,repliedEff:0});
+  const s=rows.reduce((a,r)=>({sent:a.sent+r.sent,replied:a.replied+r.replied,opps:a.opps+r.opps,repliedEff:a.repliedEff+r.repliedEff,meetings:a.meetings+(r.meetings||0)}),{sent:0,replied:0,opps:0,repliedEff:0,meetings:0});
   s.rr=pct(s.repliedEff,s.sent);s.opprate=pct(s.opps,s.sent);s.conv=pct(s.opps,s.replied);return s;
 }
 
@@ -240,7 +245,7 @@ function renderKpis(){
     {lab:"Sent",val:fmt(a.sent),note:view().length+" campaigns",cls:""},
     {lab:"Replies",val:fmt(a.replied),note:a.rr+"% reply rate",cls:""},
     {lab:"Positive Reply",val:fmt(a.opps),note:a.opprate+"% of sent",cls:"g"},
-    {lab:"Meeting Booked",val:"0",note:"none yet",cls:""},
+    {lab:"Meeting Booked",val:fmt(a.meetings),note:a.meetings?"booked":"none yet",cls:a.meetings?"g":""},
     {lab:"Reply→Pos",val:a.conv+"%",note:"reply quality",cls:"a"},
     {lab:"Cost / Pos*",val:a.opps?"~$"+Math.round(a.sent/a.opps):"—",note:"sends per pos.",cls:""},
   ];
