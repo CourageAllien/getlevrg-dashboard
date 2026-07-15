@@ -119,7 +119,7 @@
   tbody tr:hover{background:var(--panel-2)}
   td.name{text-align:left;font-family:'Hanken Grotesk',sans-serif;font-size:13.5px;font-weight:600;color:var(--txt)}
   td.name .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:9px;vertical-align:middle}
-  .tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:5px;margin-left:8px}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:5px;margin-left:8px;background:rgba(139,149,167,.12);color:var(--txt-dim)}
   .tag.w1{background:rgba(39,209,127,.12);color:var(--green)}
   .tag.w2{background:rgba(91,141,239,.12);color:var(--blue)}
   .tag.active{background:rgba(245,179,64,.12);color:var(--amber)}
@@ -150,7 +150,7 @@
     <div>
       <div class="brandline"><span class="pulse"></span><span class="eyebrow">Instantly · Outbound</span></div>
       <h1>GetLevrg <span>/ campaign health</span></h1>
-      <p class="sub">Sixteen campaigns grouped by send week. Week 4 is the newest batch (GL Campaigns 5–7). Positive replies are the qualified-interest signal; meetings booked is the next stage.</p>
+      <p class="sub">Twenty campaigns grouped by send week. Week 5 is the newest batch (GL Campaigns 8–11). Positive replies are the qualified-interest signal; meetings booked is the next stage.</p>
     </div>
     <div class="seg" id="seg">
       <button data-f="all" class="on">All</button>
@@ -203,11 +203,16 @@
 // ---- DATA ----
 // Edit any number here and the whole dashboard updates.
 // week groups each send batch (latest week ranks first): week 1 = original batch,
-// week 2 = GL Offshore Play, week 3 = GL Campaigns 1-4, week 4 = GL Campaigns 5-7.
+// week 2 = GL Offshore Play, week 3 = GL Campaigns 1-4, week 4 = GL Campaigns 5-7,
+// week 5 = GL Campaigns 8-11.
 // opps = positive replies (Instantly "Opportunities"); meetings = Instantly
 // "Conversions". replied is 0 where Instantly reply tracking is off. rr can be set
 // explicitly to override the computed reply rate; repliedEff carries it into aggregates.
 const DATA = [
+  {name:"GL Campaign 8",       week:5, status:"Paused",    sent:3296, replied:0,  opps:1,  meetings:0},
+  {name:"GL Campaign 9",       week:5, status:"Paused",    sent:1994, replied:0,  opps:1,  meetings:0},
+  {name:"GL Campaign 10",      week:5, status:"Paused",    sent:2156, replied:0,  opps:0,  meetings:0},
+  {name:"GL Campaign 11",      week:5, status:"Paused",    sent:5074, replied:0,  opps:0,  meetings:0},
   {name:"GL Campaign 5",       week:4, status:"Completed", sent:2000, replied:0,  opps:0,  meetings:0},
   {name:"GL Campaign 6",       week:4, status:"Completed", sent:2007, replied:0,  opps:1,  meetings:0},
   {name:"GL Campaign 7",       week:4, status:"Completed", sent:1700, replied:0,  opps:0,  meetings:0},
